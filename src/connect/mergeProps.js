@@ -11,7 +11,7 @@ export function wrapMergePropsFunc(mergeProps) {
     let hasRunOnce = false
     let mergedProps
 
-    return function mergePropsProxy(stateProps, dispatchProps, ownProps) {
+    function mergePropsProxy(stateProps, dispatchProps, ownProps) {
       const nextMergedProps = mergeProps(stateProps, dispatchProps, ownProps)
 
       if (hasRunOnce) {
@@ -28,6 +28,12 @@ export function wrapMergePropsFunc(mergeProps) {
 
       return mergedProps
     }
+
+    mergePropsProxy.cleanup = function cleanupMergePropsProxyClosure() {
+      mergedProps = undefined
+    }
+
+    return mergePropsProxy
   }
 }
 

@@ -45,12 +45,13 @@ function createListenerCollection() {
 }
 
 export default class Subscription {
-  constructor(store, parentSub, onStateChange) {
+  constructor(store, parentSub, onStateChange, name) {
     this.store = store
     this.parentSub = parentSub
     this.onStateChange = onStateChange
     this.unsubscribe = null
     this.listeners = nullListeners
+    this.name = name || 'unnamed'
   }
 
   addNestedSub(listener) {
@@ -68,6 +69,7 @@ export default class Subscription {
 
   trySubscribe() {
     if (!this.unsubscribe) {
+      console.log('has parent sub?', this.name, !!this.parentSub)
       this.unsubscribe = this.parentSub
         ? this.parentSub.addNestedSub(this.onStateChange)
         : this.store.subscribe(this.onStateChange)
@@ -77,11 +79,13 @@ export default class Subscription {
   }
 
   tryUnsubscribe() {
+    console.log('trying to unsubscribe', this.name)
     if (this.unsubscribe) {
+      console.log(this.name, 'subscription calling unsubscribe')
       this.unsubscribe()
-      this.unsubscribe = null
-      this.listeners.clear()
-      this.listeners = nullListeners
     }
+    this.unsubscribe = null
+    this.listeners.clear()
+    this.listeners = nullListeners
   }
 }

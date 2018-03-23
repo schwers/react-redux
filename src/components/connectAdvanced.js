@@ -11,6 +11,9 @@ function noop() {}
 function makeSelectorStateful(sourceSelector, store) {
   // wrap the selector in an object that tracks its results between runs.
   const selector = {
+    shouldComponentUpdate: false,
+    props: undefined,
+    error: null,
     run: function runComponentSelector(props) {
       try {
         const nextProps = sourceSelector(store.getState(), props)
@@ -23,6 +26,16 @@ function makeSelectorStateful(sourceSelector, store) {
         selector.shouldComponentUpdate = true
         selector.error = error
       }
+    },
+    cleanup: function cleanupComponentSelector() {
+      if (typeof sourceSelector.cleanup === 'function')  {
+        sourceSelector.cleanup();
+      }
+
+      selector.shouldComponentUpdate = false;
+      selector.run = noop;
+      selector.props = undefined;
+      selector.error = null;
     }
   }
 
@@ -129,6 +142,7 @@ export default function connectAdvanced(
           `or explicitly pass "${storeKey}" as a prop to "${displayName}".`
         )
 
+        console.log('construct', wrappedComponentName)
         this.initSelector()
         this.initSubscription()
       }
@@ -165,12 +179,16 @@ export default function connectAdvanced(
       }
 
       componentWillUnmount() {
-        if (this.subscription) this.subscription.tryUnsubscribe()
+        console.log('unmounting', wrappedComponentName)
+        if (this.subscription) {
+          console.log(wrappedComponentName, 'trying to unsubscribe')
+          this.subscription.tryUnsubscribe()
+        }
         this.subscription = null
         this.notifyNestedSubs = noop
         this.store = null
-        this.selector.run = noop
-        this.selector.shouldComponentUpdate = false
+        this.selector.cleanup();
+        this.selector = undefined;
       }
 
       getWrappedInstance() {
@@ -197,7 +215,7 @@ export default function connectAdvanced(
         // parentSub's source should match where store came from: props vs. context. A component
         // connected to the store via props shouldn't use subscription from context, or vice versa.
         const parentSub = (this.propsMode ? this.props : this.context)[subscriptionKey]
-        this.subscription = new Subscription(this.store, parentSub, this.onStateChange.bind(this))
+        this.subscription = new Subscription(this.store, parentSub, this.onStateChange.bind(this), wrappedComponentName)
 
         // `notifyNestedSubs` is duplicated to handle the case where the component is  unmounted in
         // the middle of the notification loop, where `this.subscription` will then be null. An

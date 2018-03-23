@@ -34,7 +34,9 @@ export function getDependsOnOwnProps(mapToProps) {
 //    
 //  * On first call, verifies the first result is a plain object, in order to warn
 //    the developer that their mapToProps function is not returning a valid result.
-//    
+//
+function noop() {}
+
 export function wrapMapToPropsFunc(mapToProps, methodName) {
   return function initProxySelector(dispatch, { displayName }) {
     const proxy = function mapToPropsProxy(stateOrDispatch, ownProps) {
@@ -61,6 +63,14 @@ export function wrapMapToPropsFunc(mapToProps, methodName) {
         verifyPlainObject(props, displayName, methodName)
 
       return props
+    }
+
+    proxy.cleanup = function cleanupProxyAndMapToPropsRefs() {
+      if (typeof proxy.mapToProps.cleanup === 'function') {
+        proxy.mapToProps.cleanup();
+      }
+
+      proxy.mapToProps = noop;
     }
 
     return proxy

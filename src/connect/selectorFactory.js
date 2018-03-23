@@ -83,11 +83,29 @@ export function pureFinalPropsSelectorFactory(
     return mergedProps
   }
 
-  return function pureFinalPropsSelector(nextState, nextOwnProps) {
+  function pureFinalPropsSelector(nextState, nextOwnProps) {
     return hasRunAtLeastOnce
       ? handleSubsequentCalls(nextState, nextOwnProps)
       : handleFirstCall(nextState, nextOwnProps)
   }
+
+  pureFinalPropsSelector.cleanup = function cleanupPureFinalPropsSelector() {
+    if (typeof mapStateToProps.cleanup === 'function') {
+      mapStateToProps.cleanup()
+    }
+
+    if (typeof mergeProps.cleanup === 'function') {
+      mergeProps.cleanup()
+    }
+
+    state = undefined;
+    ownProps = undefined;
+    stateProps = undefined;
+    dispatchProps = undefined;
+    mergedProps = undefined;
+  }
+
+  return pureFinalPropsSelector
 }
 
 // TODO: Add more comments
